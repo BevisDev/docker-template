@@ -8,7 +8,7 @@ COPY . .
 RUN mvn install -DskipTests=true
 
 ## deploy stage
-FROM eclipse-temurin:17-jre-alpine ## replace
+FROM eclipse-temurin:17-jre-alpine
 
 RUN unlink /etc/localtime;ln -s  /usr/share/zoneinfo/Asia/Ho_Chi_Minh /etc/localtime
 
