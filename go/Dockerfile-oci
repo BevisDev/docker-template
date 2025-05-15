@@ -1,7 +1,9 @@
 # stage 1: build app
 FROM golang:1.23.4 AS builder
 
-RUN apt-get update && apt-get install -y unzip libaio1 make
+RUN apt update && apt install -y --no-install-recommends \
+    unzip libaio1 make && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
 
@@ -12,19 +14,27 @@ RUN unzip /oracle/instantclient-basic-linux*.zip -d /oracle && \
 
 ENV LD_LIBRARY_PATH=/oracle/instantclient_12_2 \
     ORACLE_HOME=/oracle/instantclient_12_2 \
-    CGO_ENABLED=1 \
-    GO_PROFILE=uat
+    CGO_ENABLED=1
 
 COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN make build
+RUN make swag_install && \
+    make swag_gen && \
+    make build
 
 # stage 2: run app
 FROM ubuntu:22.04
 
-RUN  apt-get update && apt install -y libaio1
+# set timezone
+ENV TZ=Asia/Ho_Chi_Minh
+
+RUN apt update && apt install -y --no-install-recommends \
+    tzdata  libaio1 ca-certificates && \
+    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
+    echo $TZ > /etc/timezone && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /oracle /oracle
 
@@ -32,12 +42,9 @@ WORKDIR /app
 
 ENV LD_LIBRARY_PATH=/oracle/instantclient_12_2 \
     ORACLE_HOME=/oracle/instantclient_12_2 \
-    CGO_ENABLED=1 \
-    GO_PROFILE=uat
+    CGO_ENABLED=1
 
-COPY ./src/resources ./src/resources
+COPY --from=builder /build/src/resources ./src/resources
 COPY --from=builder /build/gobe ./
-
-EXPOSE 8089
 
 ENTRYPOINT [ "./gobe" ]
