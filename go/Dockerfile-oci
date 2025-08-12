@@ -4,9 +4,9 @@ FROM golang:1.23.4 AS builder
 # Install lib
 RUN apt-get update && \
     apt install -y --no-install-recommends \
-    unzip \ 
-    libaio1 \ 
-    make && \
+    libaio1 \
+    make \
+    unzip && \ 
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
@@ -46,11 +46,13 @@ ENV TZ=Asia/Ho_Chi_Minh
 # Install Lib oracle and Timezone
 RUN apt-get update && \
     apt install -y --no-install-recommends \
-    tzdata \
+    ca-certificates \
+    curl \
     libaio1 \
-    ca-certificates && \
-    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
-    echo $TZ > /etc/timezone && \
+    tzdata && \
+    echo "$TZ" > /etc/timezone && \
+    ln -snf "/usr/share/zoneinfo/${TZ}" /etc/localtime && \
+    dpkg-reconfigure -f noninteractive tzdata && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy lib oracle was install in builder
